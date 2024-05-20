@@ -7,9 +7,9 @@ import com.example.userstories.exception.InsufficientBalanceException;
 import com.example.userstories.mapper.CashBalanceMapper;
 import com.example.userstories.repository.CashBalanceRepository;
 import com.example.userstories.service.CashBalanceService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
@@ -44,17 +44,14 @@ public class CashBalanceServiceImpl implements CashBalanceService {
     @Override
     @Transactional
     public void withdraw(Integer userId, Double amount) {
-        CashBalance cashBalance = cashBalanceRepository.findByUserId(userId);
-        if (cashBalance != null) {
-            if (cashBalance.getBalance() >= amount) {
-                cashBalance.setBalance(cashBalance.getBalance() - amount);
-                cashBalanceRepository.save(cashBalance);
-            } else {
-                throw new InsufficientBalanceException("Insufficient balance");
-            }
-        } else {
-            throw new CashBalanceNotFoundException("Cash balance not found for user");
+     CashBalance cashBalance = cashBalanceRepository.findFirstByUserId(userId)
+             .orElseThrow(()->new CashBalanceNotFoundException("Cash balance not found for user"));
+        if (cashBalance.getBalance() < amount) {
+            throw new InsufficientBalanceException("Insufficient balance");
         }
+        cashBalance.setBalance(cashBalance.getBalance() - amount);
+        cashBalanceRepository.save(cashBalance);
     }
+
 }
 

@@ -6,17 +6,17 @@ import com.example.userstories.entity.Users;
 import com.example.userstories.mapper.UsersMapper;
 import com.example.userstories.repository.UsersRepository;
 import com.example.userstories.service.UsersService;
+import java.util.List;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-
-import java.util.List;
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class UsersServiceImpl implements UsersService {
+
     private final UsersRepository usersRepository;
     private final UsersMapper usersMapper;
 

@@ -6,14 +6,14 @@ import com.example.userstories.entity.Stocks;
 import com.example.userstories.mapper.StocksMapper;
 import com.example.userstories.repository.StocksRepository;
 import com.example.userstories.service.StocksService;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 public class StocksServiceImpl implements StocksService {
+
     private final StocksRepository stocksRepository;
     private final StocksMapper stocksMapper;
 

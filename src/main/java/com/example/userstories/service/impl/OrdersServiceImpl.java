@@ -5,6 +5,7 @@ import com.example.userstories.dto.response.OrdersResponseDto;
 import com.example.userstories.entity.Orders;
 import com.example.userstories.entity.Stocks;
 import com.example.userstories.entity.Users;
+import com.example.userstories.enumeration.OrderType;
 import com.example.userstories.exception.NotDataFound;
 import com.example.userstories.exception.OrderNotFoundException;
 import com.example.userstories.mapper.OrdersMapper;
@@ -13,16 +14,16 @@ import com.example.userstories.repository.StocksRepository;
 import com.example.userstories.repository.UsersRepository;
 import com.example.userstories.service.CashBalanceService;
 import com.example.userstories.service.OrdersService;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
 public class OrdersServiceImpl implements OrdersService {
+
     private final OrdersRepository ordersRepository;
     private final UsersRepository usersRepository;
     private final OrdersMapper ordersMapper;
@@ -31,41 +32,48 @@ public class OrdersServiceImpl implements OrdersService {
 
     @Override
     public OrdersResponseDto placeOrder(OrdersRequest ordersRequest, String symbol) {
-        // Get the order details from the request
-        String orderType = ordersRequest.getOrderType();
-        double targetPrice = ordersRequest.getTargetPrice();
-        double currentStockPrice = stocksRepository.findPriceBySymbol(symbol);
-        int userId = ordersRequest.getUserId();
-        int stockId=ordersRequest.getStockId();
-
-        // Check if the order should be fulfilled based on its type and the current stock price
-        boolean shouldFillOrder = (orderType.equals("BUY") && currentStockPrice <= targetPrice) ||
-                (orderType.equals("SELL") && currentStockPrice >= targetPrice);
-
-        // If the order should be fulfilled, update the user's cash balance
-        if (shouldFillOrder) {
-            // Calculate the transaction amount based on the order type and current stock price
-            double transactionAmount = calculateTransactionAmount(orderType, currentStockPrice);
-
-            // Update the user's cash balance
-            if (orderType.equals("BUY")) {
-                cashBalanceService.withdraw(userId, transactionAmount);
-            } else {
-                cashBalanceService.deposit(userId, transactionAmount);
-            }
-        }
+        int userId = ordersRequest.userId();
+        int stockId = ordersRequest.stockId();
         // Fetch the Users and Stocks entities
         Users user = usersRepository.findById(userId)
                 .orElseThrow(() -> new NotDataFound("User not found with id: " + userId));
         Stocks stock = stocksRepository.findById(stockId)
                 .orElseThrow(() -> new NotDataFound("Stock not found with id: " + stockId));
 
-
-        // Save the order to the database
+        if (ordersRequest.orderType().equals(OrderType.BUY)){
+            placeOrderBuy(ordersRequest, symbol);
+        }
+        else if (ordersRequest.orderType().equals(OrderType.SELL)){
+            placeOrderSell(ordersRequest, symbol);
+        }
         Orders ordersEntity = ordersMapper.fromDto(ordersRequest);
         ordersEntity.setUser(user); // Set the user
         ordersEntity.setStocks(stock); // Set the stock
         ordersEntity.setFilledTimestamp(Timestamp.valueOf(LocalDateTime.now()));  // Ensure timestamp is set correctly
+        ordersEntity = ordersRepository.save(ordersEntity);
+        return ordersMapper.toDto(ordersEntity);
+    }
+    private OrdersResponseDto placeOrderBuy(OrdersRequest ordersRequest, String symbol){
+        String orderType = ordersRequest.orderType();
+        double targetPrice = ordersRequest.targetPrice();
+        double currentStockPrice = stocksRepository.findPriceBySymbol(symbol);
+        if(currentStockPrice <= targetPrice){
+            double transactionAmount = calculateTransactionAmount(orderType, currentStockPrice);
+            cashBalanceService.withdraw(ordersRequest.userId(), transactionAmount);
+        }
+        Orders ordersEntity = ordersMapper.fromDto(ordersRequest);
+        ordersEntity = ordersRepository.save(ordersEntity);
+        return ordersMapper.toDto(ordersEntity);
+    }
+    private OrdersResponseDto placeOrderSell(OrdersRequest ordersRequest, String symbol){
+        String orderType = ordersRequest.orderType();
+        double targetPrice = ordersRequest.targetPrice();
+        double currentStockPrice = stocksRepository.findPriceBySymbol(symbol);
+        if(currentStockPrice >= targetPrice){
+            double transactionAmount = calculateTransactionAmount(orderType, currentStockPrice);
+            cashBalanceService.deposit(ordersRequest.userId(), transactionAmount);
+        }
+        Orders ordersEntity = ordersMapper.fromDto(ordersRequest);
         ordersEntity = ordersRepository.save(ordersEntity);
         return ordersMapper.toDto(ordersEntity);
     }
@@ -100,7 +108,7 @@ public class OrdersServiceImpl implements OrdersService {
         Orders newOrder = ordersRepository.findById(id)
                 .orElseThrow(() -> new OrderNotFoundException("Order not found with id: " + id));
 
-        ordersMapper.mapUpdateRequestToEntity(newOrder,ordersRequest);
+        ordersMapper.mapUpdateRequestToEntity(newOrder, ordersRequest);
         newOrder = ordersRepository.save(newOrder);
         return ordersMapper.toDto(newOrder);
     }
@@ -112,4 +120,5 @@ public class OrdersServiceImpl implements OrdersService {
         }
         ordersRepository.deleteById(id);
     }
+
 }
