@@ -83,7 +83,7 @@ public class OrdersServiceImpl implements OrdersService {
         // For example, you can use fixed quantity or percentage of stock price
         // For demonstration, let's assume a fixed percentage (10%) of the current stock price
         double percentage = 0.10; // 10%
-        if (orderType.equals("BUY")) {
+        if (orderType.equals(OrderType.BUY)) {
             return currentStockPrice * percentage;
         } else {
             return -1 * currentStockPrice * percentage; // For SELL order, transaction amount is negative
