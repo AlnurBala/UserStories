@@ -20,6 +20,17 @@ spring:
   logging:
     level:
       liquibase: DEBUG
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: balayevaltun@gmail.com
+    password: fmua ajia rjom yose
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
 #server:
 #  servlet:
 #    context-path: api/v1

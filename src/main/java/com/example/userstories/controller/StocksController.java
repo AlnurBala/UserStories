@@ -29,12 +29,12 @@ public class StocksController {
     }
 
     @PostMapping
-    public ResponseEntity<StocksResponseDto> createCategory(@RequestBody StocksRequest stocksRequest) {
+    public ResponseEntity<StocksResponseDto> createStock(@RequestBody StocksRequest stocksRequest) {
         return new ResponseEntity<>(stocksService.createStock(stocksRequest), HttpStatus.CREATED);
     }
 
     @PutMapping("/{id}")
-    public StocksResponseDto updateCategory(@PathVariable Integer id, @RequestBody StocksRequest stocksRequest) {
+    public StocksResponseDto updateStock(@PathVariable Integer id, @RequestBody StocksRequest stocksRequest) {
         return stocksService.updateStock(id, stocksRequest);
     }
 

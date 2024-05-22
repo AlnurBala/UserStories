@@ -5,7 +5,8 @@ import com.example.userstories.dto.OrdersResponse;
 import java.util.List;
 
 
-public record UsersResponseDto(
+public record
+UsersResponseDto(
         Integer userId,
         String username,
         String emailAddress,

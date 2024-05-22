@@ -19,9 +19,9 @@ public class CashBalanceController {
 
     private final CashBalanceService cashBalanceService;
 
-    @GetMapping("/{userId}")
-    public ResponseEntity<CashBalanceResponseDto> getBalance(@PathVariable Integer userId) {
-        CashBalanceResponseDto response = cashBalanceService.getBalance(userId);
+    @GetMapping("/{id}")
+    public ResponseEntity<CashBalanceResponseDto> getBalance(@PathVariable Integer id) {
+        CashBalanceResponseDto response = cashBalanceService.getBalance(id);
         return ResponseEntity.ok(response);
     }
 

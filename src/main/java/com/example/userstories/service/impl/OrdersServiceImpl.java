@@ -14,6 +14,7 @@ import com.example.userstories.repository.StocksRepository;
 import com.example.userstories.repository.UsersRepository;
 import com.example.userstories.service.CashBalanceService;
 import com.example.userstories.service.OrdersService;
+import jakarta.mail.MessagingException;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -29,6 +30,8 @@ public class OrdersServiceImpl implements OrdersService {
     private final OrdersMapper ordersMapper;
     private final CashBalanceService cashBalanceService;
     private final StocksRepository stocksRepository;
+    private final EmailService emailService; // Inject EmailService
+
 
     @Override
     public OrdersResponseDto placeOrder(OrdersRequest ordersRequest, String symbol) {
@@ -51,6 +54,20 @@ public class OrdersServiceImpl implements OrdersService {
         ordersEntity.setStocks(stock); // Set the stock
         ordersEntity.setFilledTimestamp(Timestamp.valueOf(LocalDateTime.now()));  // Ensure timestamp is set correctly
         ordersEntity = ordersRepository.save(ordersEntity);
+
+        // Send email notification
+        try {
+            String subject = "Order Filled: " + ordersEntity.getOrderType();
+            String body = String.format("Your order to %s %s at %s has been filled.",
+                    ordersEntity.getOrderType().toLowerCase(),
+                    stock.getSymbol(),
+                    ordersEntity.getFilledTimestamp());
+            emailService.sendOrderFilledEmail(user.getEmailAddress(), subject, body);
+        } catch (MessagingException e) {
+            // Handle the exception (e.g., log it)
+            e.printStackTrace();
+        }
+
         return ordersMapper.toDto(ordersEntity);
     }
     private OrdersResponseDto placeOrderBuy(OrdersRequest ordersRequest, String symbol){
@@ -60,6 +77,7 @@ public class OrdersServiceImpl implements OrdersService {
         if(currentStockPrice <= targetPrice){
             double transactionAmount = calculateTransactionAmount(orderType, currentStockPrice);
             cashBalanceService.withdraw(ordersRequest.userId(), transactionAmount);
+            sendOrderFilledEmail(ordersRequest.userId(), OrderType.BUY.toString(), symbol);
         }
         Orders ordersEntity = ordersMapper.fromDto(ordersRequest);
         ordersEntity = ordersRepository.save(ordersEntity);
@@ -72,10 +90,24 @@ public class OrdersServiceImpl implements OrdersService {
         if(currentStockPrice >= targetPrice){
             double transactionAmount = calculateTransactionAmount(orderType, currentStockPrice);
             cashBalanceService.deposit(ordersRequest.userId(), transactionAmount);
+            sendOrderFilledEmail(ordersRequest.userId(), OrderType.SELL.toString(), symbol);
+
         }
         Orders ordersEntity = ordersMapper.fromDto(ordersRequest);
         ordersEntity = ordersRepository.save(ordersEntity);
         return ordersMapper.toDto(ordersEntity);
+    }
+
+    private void sendOrderFilledEmail(int userId, String orderType, String symbol) {
+        Users user = usersRepository.findById(userId).orElseThrow(() -> new NotDataFound("User not found with id: " + userId));
+        String subject = "Order Filled: " + orderType;
+        String body = String.format("Your order to %s %s has been filled.", orderType.toLowerCase(), symbol);
+        try {
+            emailService.sendOrderFilledEmail(user.getEmailAddress(), subject, body);
+        } catch (MessagingException e) {
+            // Handle the exception (e.g., log it)
+            e.printStackTrace();
+        }
     }
 
     private double calculateTransactionAmount(String orderType, double currentStockPrice) {
